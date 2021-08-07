@@ -30,11 +30,21 @@ echo -e "\e[97m[$1]\e[0m $2"
 
 IFS=':'; path_arr=($PATH); unset IFS;
 
+MAINMENUINPUTREGEX='^[1-4]$'
+LISTPATHINPUTREGEX='^\d+$'
+
+INPUTCHECK(){
+	if ! [[ $1 =~ $2 ]] ; then
+		continue
+		echo boom
+	fi
+}
+
 #Edit/view path functionality
 APPENDTORC(){
 	echo "" >> ~/.bashrc
 	echo "#psychoPath: $2 at $(date)" >> ~/.bashrc
-	echo "PATH=$1" >> ~/.bashrc
+	echo "export PATH='$1'" >> ~/.bashrc
 	echo "" >> ~/.bashrc
 
 	export PATH="$1"
@@ -70,43 +80,43 @@ while $inputloop; do
 				
 				case $dest_idx in
 					-1)
-						ERROR 'Cancelled adding new path.'
-						inputloop=false
-						break
-						;;
-					""|$default_idx)
-						#append path directly to the end of bashrc and environment
-						APPENDTORC "$PATH:${newpath}" "Added a new path at $((default_idx))"
-						SUCCESS "Path added successfully." 
-						inputloop=false
-						break	
-						;;
-					*)
-						dest_idx=$((dest_idx - 1)) #actual arrays start from 0
-
-						if [[ dest_idx -lt 1 || dest_idx -gt ${#path_arr[@]} ]]; then
-							ERROR 'Invalid input: index out of bounds.'
-							ERROR 'Cancelling adding new path.'
+							ERROR 'Cancelled adding new path.'
 							inputloop=false
 							break
-						fi
-						
-						#shift the array and add path there
-						new_path_arr=( "${path_arr[@]:0:${dest_idx}}" "${newpath}" "${path_arr[@]:$dest_idx}" )
-						new_path_var=""
+							;;
+					""|$default_idx)
+							#append path directly to the end of bashrc and environment
+							APPENDTORC "$PATH:${newpath}" "Added a new path at $((default_idx))"
+							SUCCESS "Path added successfully." 
+							inputloop=false
+							break	
+							;;
+					*)
+							dest_idx=$((dest_idx - 1)) #actual arrays start from 0
 
-						for path in "${new_path_arr[@]}";do
-							new_path_var=$new_path_var:$path
-						done
-
-						new_path_var=${new_path_var:1}
+							if [[ dest_idx -lt 1 || dest_idx -gt ${#path_arr[@]} ]]; then
+								ERROR 'Invalid input: index out of bounds.'
+								ERROR 'Cancelling adding new path.'
+								inputloop=false
+								break
+							fi
 							
-						#echo "$new_path_var"
-						APPENDTORC "${new_path_var}"
-						SUCCESS "Path added successfully."
-						inputloop=false
-						break
-						;;
+							#shift the array and add path there
+							new_path_arr=( "${path_arr[@]:0:${dest_idx}}" "${newpath}" "${path_arr[@]:$dest_idx}" )
+							new_path_var=""
+
+							for path in "${new_path_arr[@]}";do
+								new_path_var=$new_path_var:$path
+							done
+
+							new_path_var=${new_path_var:1}
+								
+							#echo "$new_path_var"
+							APPENDTORC "${new_path_var}"
+							SUCCESS "Path added successfully."
+							inputloop=false
+							break
+							;;
 				esac				
 			done
 			;;
@@ -134,85 +144,86 @@ EDITPATH(){
 			NUMBER '3' 'Cancel'
 			read edit_op	
 			case $edit_op in 
-				1)
-					QUESTION 'Enter the new path, leave blank to cancel:'
+					1)
+								QUESTION 'Enter the new path, leave blank to cancel:'
 
-					newpath=''
-					read newpath
+								newpath=''
+								read newpath
 
-					case $newpath in
-						'')
-							ERROR 'Cancelled path editing.'
-							inputloop=false
-							break
-							;;
-						*)
-							ensure_prompt=""
-							QUESTION "Confirm the new path by typing Y\y: ${newpath}"
-							read ensure_prompt
+								case $newpath in
+									'')
+											ERROR 'Cancelled path editing.'
+											inputloop=false
+											break
+											;;
+									*)
+											ensure_prompt=""
+											QUESTION "Confirm the new path by typing Y\y: ${newpath}"
+											read ensure_prompt
 
-							case $ensure_prompt in
-								"y"|"Y")
-									#Edit the path
-									new_path_arr=( "${path_arr[@]:0:${edit_idx}}" "${newpath}" "${path_arr[@]:$((edit_idx + 1))}" )
-									new_path_var=""
+											case $ensure_prompt in
+												"y"|"Y")
+														#Edit the path
+														new_path_arr=( "${path_arr[@]:0:${edit_idx}}" "${newpath}" "${path_arr[@]:$((edit_idx + 1))}" )
+														new_path_var=""
 
-									for path in "${new_path_arr[@]}";do
-										new_path_var=$new_path_var:$path
-									done
+														for path in "${new_path_arr[@]}";do
+															new_path_var=$new_path_var:$path
+														done
 
-									new_path_var=${new_path_var:1}
-									#echo "$new_path_var"
+														new_path_var=${new_path_var:1}
+														#echo "$new_path_var"
 
-									APPENDTORC "$new_path_var" "Edited the path at $((edit_idx + 1))"
-									SUCCESS 'Path edited successfully.'
-									inputloop=false
-									#break
-									;;
-								*)
-									ERROR "Cancelled path editing."
-									inputloop=false
-									#break
-									;;
+														APPENDTORC "$new_path_var" "Edited the path at $((edit_idx + 1))"
+														SUCCESS 'Path edited successfully.'
+														inputloop=false
+														#break
+														;;
+												*)
+														ERROR "Cancelled path editing."
+														inputloop=false
+														#break
+														;;
+											esac
+											;;
+								esac
+						;;
+					2)
+							delete_prompt=""
+							QUESTION 'Confirm the deletion by typing Y\y:'
+							read delete_prompt
+								
+							case $delete_prompt in 
+									'y'|'Y')
+											new_path_arr=( "${path_arr[@]:0:${edit_idx}}" "${path_arr[@]:$((edit_idx + 1))}" )
+											new_path_var=""
+
+											for path in "${new_path_arr[@]}";do
+												new_path_var=$new_path_var:$path
+											done
+
+											new_path_var=${new_path_var:1}
+											#echo "$new_path_var"
+
+											APPENDTORC "$new_path_var" "Deleted the path at $((edit_idx + 1))"
+											SUCCESS 'Path deleted successfully.'
+											inputloop=false
+											;;
+									*)
+											ERROR "Cancelled path deletion."
+											inputloop=false
+											break
+											;;
 							esac
+
 							;;
-					esac
-					;;
-				2)
-					delete_prompt=""
-					QUESTION 'Confirm the deletion by typing Y\y:'
-					read delete_prompt
-						
-					case $delete_prompt in 
-						'y'|'Y')
-							new_path_arr=( "${path_arr[@]:0:${edit_idx}}" "${path_arr[@]:$((edit_idx + 1))}" )
-							new_path_var=""
-
-							for path in "${new_path_arr[@]}";do
-								new_path_var=$new_path_var:$path
-							done
-
-							new_path_var=${new_path_var:1}
-							#echo "$new_path_var"
-
-							APPENDTORC "$new_path_var" "Deleted the path at $((edit_idx + 1))"
-							SUCCESS 'Path deleted successfully.'
-							inputloop=false
-							;;
-						*)
-							ERROR "Cancelled path deletion."
-							inputloop=false
+					3)
+							edit_op=''
 							break
 							;;
-					esac
-					;;
-				3)
-					edit_op=''
-					break
-					;;
-				*)
-					ERROR 'Invalid input'
-					;;
+					*)
+							ERROR 'Invalid input'
+							;;
 			esac
 		done
 }
@@ -263,6 +274,8 @@ grep -w -i "^#psychoPath:" ~/.bashrc | sed -e "s/^#psychoPath://"
 
 DISPLAYMAINMENU(){
 while [[ ans -lt 1 || ans -gt 4 ]] ; do
+	#INPUTCHECK $ans $MAINMENUINPUTREGEX	
+	
 	echo -e $MAINMENU
 	read ans
 
